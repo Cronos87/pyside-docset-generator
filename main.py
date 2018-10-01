@@ -2,7 +2,6 @@
 
 import os
 import re
-import urllib
 import urllib.request
 import sqlite3
 from bs4 import BeautifulSoup
@@ -76,7 +75,7 @@ def do_request(url: str):
         html: str = urllib.request.urlopen(url).read()
 
         return BeautifulSoup(html, "html.parser")
-    except urllib.error.HTTPError:
+    except:
         return None
 
 
@@ -103,7 +102,7 @@ def download_file(url: str, file_name: str):
             file.write(content)
 
         return True
-    except urllib.error.HTTPError:
+    except:
         return False
 
 
@@ -230,9 +229,6 @@ def parse_class_page(module: str, class_name: str):
 
     file_path = "%s.html" % class_name
 
-    # Save the page
-    save_page(file_path, str(document.title.string), str(body))
-
     # Add the class entry in database depending of the type
     database_type = "Class"
 
@@ -258,6 +254,33 @@ def parse_class_page(module: str, class_name: str):
         for method in methods:
             entry_name = "PySide2.%s.%s.%s" % (module, class_name, method.string)
             insert_entry(entry_name, "Method", "%s%s" % (file_path, method["href"]))
+
+    # Find all enums and index them
+    for enum in body.find_all("dl", class_="attribute"):
+        tag = enum.findChild("dt")
+
+        # Index the attribute
+        insert_entry(tag["id"], "Attribute", "%s#%s" % (file_path, tag["id"]))
+
+        # Index the constants
+        rows = enum.find_all("tbody")
+
+        if rows is None:
+            continue
+
+        for row in rows:
+            for constant in row.find_all("tr"):
+                text = constant.find("td").text
+
+                if not class_name in constant.text:
+                    continue
+
+                constant["id"] = "PySide2.%s.%s" % (module, text)
+
+                insert_entry(constant["id"], "Constant", "%s#%s" % (file_path, constant["id"]))
+
+    # Save the page
+    save_page(file_path, str(document.title.string), str(body))
 
 
 def main():
