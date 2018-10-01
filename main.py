@@ -243,20 +243,21 @@ def parse_class_page(module: str, class_name: str):
     elif class_name.endswith("Enum"):
         database_type = "Enum"
 
-    insert_entry(class_name, database_type, file_path)
+    entry_name = "PySide2.%s.%s" % (module, class_name)
+    insert_entry(entry_name, database_type, file_path)
 
-    # Find all functions, if there are functions, and insert
+    # Find all methods, if there are methods, and insert
     # entries in the database
     synopsis = body.find(id="synopsis")
 
-    # Check if the page have functions to index
+    # Check if the page have methods to index
     if synopsis is not None:
-        # Find all functions and index them
-        functions = synopsis.find_all("a", class_="reference internal")
+        # Find all methods and index them
+        methods = synopsis.find_all("a", class_="reference internal")
 
-        for function in functions:
-            function_fullname = "%s (%s.%s)" % (function.string, module, class_name)
-            insert_entry(function_fullname, "Function", "%s%s" % (file_path, function["href"]))
+        for method in methods:
+            entry_name = "PySide2.%s.%s.%s" % (module, class_name, method.string)
+            insert_entry(entry_name, "Method", "%s%s" % (file_path, method["href"]))
 
 
 def main():
